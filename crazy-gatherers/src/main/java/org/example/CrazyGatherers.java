@@ -1,24 +1,32 @@
 package org.example;
 
 import org.example.utils.Account;
+import org.example.utils.OrderDetails;
 import org.example.utils.Sex;
 
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.*;
 import java.util.stream.Gatherer;
+import java.util.stream.Gatherers;
 import java.util.stream.Stream;
 
 public class CrazyGatherers {
 
     private Collection<Account> accounts;
 
+    private List<Integer> integers;
+
     public CrazyGatherers(Collection<Account> accounts) {
         this.accounts = accounts;
+    }
+
+    public CrazyGatherers(List<Integer> integers) {
+        this.integers = integers;
     }
 
     /// Returns all accounts matching the given sex.
@@ -194,8 +202,7 @@ public class CrazyGatherers {
         return Gatherer.ofSequential(
                 () -> new Object() { long currentSize = 0L; },
                 ((state, element, downstream) -> {
-                    state.currentSize++;
-                    if (state.currentSize < size) {
+                    if (state.currentSize++ < size) {
                         return downstream.push(element);
                     } else {
                         return false;
@@ -279,9 +286,9 @@ public class CrazyGatherers {
                 AtomicInteger::new,
                 ((counter, element, downstream) -> {
                     if (counter.getAndIncrement() < size) {
-                        return downstream.push(element);
+                        return true;
                     } else {
-                        return false;
+                        return downstream.push(element);
                     }
                 })
         );
@@ -320,14 +327,13 @@ public class CrazyGatherers {
         return Gatherer.ofSequential(
                 () -> new Object() { boolean isClosed = true; },
                 ((gate, element, downstream) -> {
+                    if (gate.isClosed && !predicate.test(element)) {
+                        gate.isClosed = false;
+                    }
                     if (!gate.isClosed) {
                         return downstream.push(element);
                     }
-
-                    if (!predicate.test(element)) {
-                        gate.isClosed = false;
-                    }
-                    return downstream.push(element);
+                    return true;
                 })
         );
     }
@@ -391,16 +397,20 @@ public class CrazyGatherers {
     ///   a gatherer that sorts elements before forwarding
     private Gatherer<String, ?, String> sorted() {
         return Gatherer.of(
-                () -> new TreeSet<String>(),
-                ((state, element, downstream) -> {
-                    state.add(element);
+                () -> new PriorityQueue<String>(),
+                ((queue, element, _) -> {
+                    queue.add(element);
                     return true;
                 }),
-                (state1, state2) -> {
-                    state1.addAll(state2);
-                    return state1;
+                (queue, queue2) -> {
+                    queue.addAll(queue2);
+                    return queue;
                 },
-                (state, downstream) -> state.forEach(downstream::push)
+                (queue, downstream) -> {
+                    while (!queue.isEmpty()) {
+                        downstream.push(queue.poll());
+                    }
+                }
         );
     }
 
@@ -432,16 +442,457 @@ public class CrazyGatherers {
     ///   a gatherer that sorts elements before forwarding
     private Gatherer<String, ?, String> sorted(Comparator<String> comparator) {
         return Gatherer.of(
-                () -> new TreeSet<>(comparator),
-                ((state, element, downstream) -> {
-                    state.add(element);
+                () -> new PriorityQueue<>(comparator),
+                ((queue, element, _) -> {
+                    queue.add(element);
                     return true;
                 }),
-                (state1, state2) -> {
-                    state1.addAll(state2);
-                    return state1;
+                (queue, queue2) -> {
+                    queue.addAll(queue2);
+                    return queue;
                 },
-                (state, downstream) -> state.forEach(downstream::push)
+                (queue, downstream) -> {
+                    while (!queue.isEmpty()) {
+                        downstream.push(queue.poll());
+                    }
+                }
         );
+    }
+
+    /// Returns a list of first names from all accounts, concatenated using a fold operation.
+    ///
+    /// This method demonstrates how a custom
+    /// [java.util.stream.Gatherer] can implement behavior similar to
+    /// [Gatherers#fold(java.util.function.Supplier, java.util.function.BiFunction)].
+    ///
+    /// Internally, it accumulates the first names of all accounts into a single string,
+    /// starting from an initial value `" $ "` and combining each element with `" | "`
+    /// as a separator using the provided function.
+    ///
+    /// @return
+    ///   a list containing the concatenated first names as a single string
+    public List<String> concatenateFirstNames() {
+        return accounts.stream()
+                .map(Account::firstName)
+                .gather(customStringFold(() -> "$", (str, name) -> str + " | " + name))
+                .toList();
+    }
+
+    /// Creates a gatherer that accumulates elements using a fold-like operation.
+    ///
+    /// This method is intentionally left unimplemented as an exercise.
+    /// The gatherer must imitate [Gatherers#fold(java.util.function.Supplier, java.util.function.BiFunction)], starting from a supplied initial value
+    /// and applying a combining function to each element.
+    ///
+    /// @param supplier
+    ///   provides the initial value for the fold
+    /// @param biConsumer
+    ///   the function used to combine the accumulated value with each element
+    /// @return
+    ///   a gatherer that folds elements into a single result
+    private Gatherer<String, ?, String> customStringFold(Supplier<String> initial, BiFunction<String, String, String> folder) {
+        return Gatherer.ofSequential(
+                () -> new Object() {
+                    String word = initial.get();
+                },
+                ((state, element, _) -> {
+                    state.word = folder.apply(state.word, element);
+                    return true;
+                }),
+                (state, downstream) -> downstream.push(state.word)
+        );
+    }
+
+    /// Returns a list of cumulative balances from all accounts.
+    /// This method demonstrates how a custom
+    /// [java.util.stream.Gatherer] can implement behavior similar to
+    /// [Gatherers#scan(java.util.function.Supplier, java.util.function.BiFunction)].
+    ///
+    /// Internally, it accumulates the balances of accounts step by step,
+    /// starting from an initial value `BigDecimal.ZERO` and combining each
+    /// account's balance using the provided scanning function.
+    ///
+    /// @return
+    ///   a list containing the running totals of account balances
+   public List<BigDecimal> scanBalances() {
+       return accounts.stream()
+               .gather(customScan(() -> BigDecimal.ZERO, (total, balance) -> total.add(balance.balance())))
+               .toList();
+    }
+
+    /// Creates a gatherer that accumulates values in a running total manner.
+    ///
+    /// This method is intentionally left unimplemented as an exercise.
+    /// The gatherer must combine elements step by step using the provided
+    /// scanner function, forwarding each intermediate result downstream.
+    ///
+    /// @param initial
+    ///   a supplier providing the initial value for the accumulation
+    /// @param scanner
+    ///   a function that combines the current accumulated value and the next account
+    /// @return
+    ///   a gatherer that emits the running totals of balances
+    private Gatherer<Account, ?, BigDecimal> customScan(Supplier<BigDecimal> initial,
+                                                        BiFunction<BigDecimal, Account, BigDecimal> scanner) {
+        return Gatherer.ofSequential(
+                () -> new Object() {
+                    BigDecimal total = initial.get();
+                },
+                ((state, element, downstream) -> {
+                    state.total = scanner.apply(state.total, element);
+                    return downstream.push(state.total);
+                })
+        );
+    }
+
+    /// Returns first names grouped into consecutive slices of a fixed size.
+    ///
+    /// This method demonstrates how a custom
+    /// [java.util.stream.Gatherer] can implement behavior similar to
+    /// [Gatherers#windowFixed(int)].
+    ///
+    /// Elements are collected in encounter order into lists of the given size.
+    /// The final slice may contain fewer elements if the stream ends early.
+    ///
+    /// @param size
+    ///   the maximum number of elements in each slice
+    /// @return
+    ///   a list of first-name slices
+    public List<List<String>> groupEmailsByFixedWindow(int size) {
+        return accounts.stream()
+                .map(Account::email)
+                .gather(Gatherers.windowFixed(size))
+                .toList();
+    }
+
+    /// Creates a gatherer that collects elements into fixed-size windows.
+    ///
+    /// This method is intentionally left unimplemented as an exercise.
+    /// The gatherer must emit each window as a {@link java.util.List}
+    /// once it reaches the specified size.
+    ///
+    /// @param size
+    ///   the number of elements per window
+    /// @return
+    ///   a gatherer that groups elements into fixed-size windows
+    private <T>Gatherer<T, ?, List<T>> windowFixed(int size) {
+        return Gatherer.ofSequential(
+                ArrayList<T>::new,
+                ((window, element, downstream) -> {
+                    window.add(element);
+                    if (window.size() == size) {
+                        List<T> emit = List.copyOf(window);
+                        window.clear();
+                        return downstream.push(emit);
+                    }
+                    return true;
+                }),
+                (state, downstream) -> {
+                    if (!state.isEmpty()) {
+                        List<T> emit = List.copyOf(state);
+                        state.clear();
+                        downstream.push(emit);
+                    }
+                }
+        );
+    }
+
+    /// Returns first names grouped into consecutive slices of a fixed size.
+    ///
+    /// This method demonstrates how a custom
+    /// [java.util.stream.Gatherer] can implement behavior similar to
+    /// [Gatherers#windowSliding(int)].
+    ///
+    /// Elements are collected in encounter order into lists of the given size.
+    /// The final slice may contain fewer elements if the stream ends early.
+    ///
+    /// @param size
+    ///   the maximum number of elements in each slice
+    /// @return
+    ///   a list of first-name slices
+    public List<List<String>> groupFirstNamesBySlidingWindow(int size) {
+        return accounts.stream()
+                .map(Account::firstName)
+                .gather(windowSliding(size))
+                .toList();
+    }
+
+    /// Creates a gatherer that groups elements into overlapping sliding windows.
+    ///
+    /// This method is intentionally left unimplemented as an exercise.
+    /// The gatherer should maintain a moving window of the given size and
+    /// emit a new list each time a new element enters the window, matching
+    /// the semantics of a sliding window.
+    ///
+    /// @param size
+    ///   the number of elements in each sliding window
+    /// @param <T>
+    ///   the type of streamed elements
+    /// @return
+    ///   a gatherer that emits overlapping sliding windows of elements
+    private static  <T>Gatherer<T, ?, List<T>> windowSliding(int size) {
+        return Gatherer.ofSequential(
+                ArrayDeque<T>::new,
+                ((queue, element, downstream) -> {
+                    if (queue.size() < size) {
+                        queue.addLast(element);
+                    } else if (queue.size() == size) {
+                        var emit = List.copyOf(queue);
+                        queue.removeFirst();
+                        queue.addLast(element);
+                        return downstream.push(emit);
+                    }
+                    return true;
+                }),
+                (state, downstream) -> {
+                    if (!state.isEmpty()) {
+                        var emit = List.copyOf(state);
+                        state.clear();
+                        downstream.push(emit);
+                    }
+                }
+        );
+    }
+
+    /// Returns a list of accounts with unique first names, processed in parallel.
+    ///
+    /// This method demonstrates how a custom
+    /// [java.util.stream.Gatherer] can enforce uniqueness based on
+    /// a derived key rather than object equality, even when the stream
+    /// is executed concurrently.
+    ///
+    /// Only the first account for each first name is propagated
+    /// downstream; subsequent accounts with the same first name
+    /// are ignored. The gatherer must be thread-safe to handle
+    /// parallel execution.
+    ///
+    /// @return
+    ///   a list of accounts with distinct first names
+    public List<Account> distinctByFirstName() {
+        return accounts.parallelStream()
+                .gather(distinctBy(Account::firstName))
+                .toList();
+    }
+
+    /// Creates a thread-safe gatherer that emits elements with distinct extracted keys.
+    ///
+    /// This method is intentionally left unimplemented as an exercise.
+    /// The gatherer must track keys produced by the given extractor and
+    /// forward only the first element associated with each key, while
+    /// correctly handling concurrent updates from multiple threads.
+    ///
+    /// @param keyExtractor
+    ///   function used to extract the comparison key
+    /// @param <T>
+    ///   the type of streamed elements
+    /// @param <K>
+    ///   the type of the extracted key
+    /// @return
+    ///   a thread-safe gatherer that emits only elements whose extracted keys are unique
+    private <T, K>Gatherer<T, ?, T> distinctBy(Function<? super T, ? extends K> keyExtractor) {
+        return Gatherer.of(
+                HashMap<K, T>::new, // initializer
+                (state, element, _) -> {
+                    K key = keyExtractor.apply(element);
+                    if (!state.containsKey(key)) {
+                        state.put(key, element);
+                    }
+                    return true;
+                },
+                (m1, m2) -> { // combiner
+                    m2.forEach(m1::putIfAbsent);
+                    return m1;
+                },
+                (state, downstream) -> { // finisher
+                    for (T element : state.values()) {
+                        if (!downstream.push((element))) {
+                            break;
+                        }
+                    }
+                }
+        );
+    }
+
+    /// Returns a list of increasing sequences from the input integers.
+    ///
+    /// This method demonstrates how a custom
+    /// [java.util.stream.Gatherer] can implement sequence detection
+    /// based on a comparator. Each emitted list contains elements
+    /// that are strictly increasing according to the provided comparator.
+    ///
+    /// For example, given list
+    /// ```text
+/// [2, 1, 3, 4, 5, 4, 3, 2, 1]
+/// ```
+    /// using the natural order comparator, the result would be:
+    /// ```text
+/// [[2], [1, 3, 4, 5], [4], [3], [2], [1]]
+/// ```
+    ///
+    /// @return
+    ///   a list of integer lists, each representing a maximal increasing sequence
+    public List<List<Integer>> getIncreasingSequence() {
+        return integers.stream()
+                .gather(increasingSequence(Comparator.<Integer>naturalOrder()))
+                .toList();
+    }
+
+    /// Creates a gatherer that collects elements into lists representing
+    /// increasing sequences according to the given comparator.
+    ///
+    /// This method is intentionally left unimplemented as an exercise.
+    /// The gatherer must start a new list whenever the next element does not
+    /// continue the increasing sequence.
+    ///
+    /// @param comparator
+    ///   the comparator used to determine the order of elements
+    /// @param <T>
+    ///   the type of streamed elements
+    /// @return
+    ///   a gatherer that emits consecutive increasing sequences
+    private <T> Gatherer<T, ?, List<T>> increasingSequence(Comparator<T> comparator) {
+        return Gatherer.ofSequential(
+                ArrayList<T>::new,
+                ((state, element, downstream) -> {
+                    if (state.isEmpty() || comparator.compare(element, state.getLast()) > 0) {
+                        state.add(element);
+                    } else {
+                        List<T> emitState = List.copyOf(state);
+                        state.clear();
+                        state.add(element);
+                        return downstream.push(emitState);
+                    }
+                    return true;
+                }),
+                (state, downstream) -> {
+                    if (!state.isEmpty() && !downstream.isRejecting()) {
+                        List<T> emitState = List.copyOf(state);
+                        state.clear();
+                        downstream.push(emitState);
+                    }
+                }
+        );
+    }
+
+    /// Returns a list of accounts selected at regular intervals from the stream.
+    ///This method demonstrates how a custom
+    /// [java.util.stream.Gatherer] can implement behavior similar to taking
+    /// every N-th element from a stream.
+    ///
+    /// For example, given a step of 2, every second account in encounter
+    /// order is included in the result.
+    ///
+    /// @param step
+    ///   the interval at which accounts are selected (must be non-zero)
+    /// @return
+    ///   a list of accounts sampled every `step` elements
+    public List<Account> getEveryAccountByStep(int step) {
+        return accounts.stream()
+                .gather(every(step))
+                .toList();
+    }
+
+    /// Creates a gatherer that selects every `step`-th element from a stream.
+    ///
+    /// The gatherer maintains a simple counter and pushes an element
+    /// downstream only when the counter reaches a multiple of `step`.
+    ///
+    /// @param step
+    ///   the interval at which elements are propagated (must be non-zero)
+    /// @param <T>
+    ///   the type of streamed elements
+    /// @return
+    ///   a gatherer that emits every `step`-th element
+    /// @throws IllegalArgumentException
+    ///   if `step` is less or equal to zero
+    private <T> Gatherer<T, ?, T> every(int step) {
+        if (step <= 0) {
+            throw new IllegalArgumentException("step value can't be zero or negative value");
+        }
+        return Gatherer.ofSequential(
+                AtomicInteger::new,
+                ((state, element, downstream) -> {
+                    if (state.incrementAndGet() % step == 0) {
+                        return downstream.push(element);
+                    }
+                    return true;
+                })
+        );
+    }
+
+    /// Returns a list with consecutive duplicate elements collapsed into a single occurrence.
+    ///
+    /// This method demonstrates how a custom
+    /// [java.util.stream.Gatherer] can implement behavior similar to removing
+    /// consecutive duplicates from a stream, while preserving encounter order.
+    ///
+    /// For example, given the input list:
+    ///
+    /// ```text
+/// [1, 1, 2, 2, 2, 3, 1, 1, 4]
+/// ```
+    ///
+    /// the resulting list will be:
+    ///
+    /// ```text
+/// [1, 2, 3, 1, 4]
+/// ```
+    ///
+    /// @return
+    ///   a list of elements with consecutive duplicates removed
+    public List<Integer> collapseConsecutiveDuplicates() {
+        return integers.stream()
+                .gather(collapseConsecutive())
+                .toList();
+    }
+
+/// Creates a gatherer that collapses consecutive duplicates into a single element.
+///
+/// This gatherer only propagates an element downstream if it differs from
+/// the previous element, effectively removing consecutive duplicates while
+/// preserving the encounter order.
+///
+/// @param <T>  the type of elements in the stream
+    /// @return
+    ///   a gatherer that removes consecutive duplicates in order
+    private <T> Gatherer<T, ?, T> collapseConsecutive() {
+        return Gatherer.ofSequential(
+                () -> new AtomicReference<T>(),
+                ((state, element, downstream) -> {
+                    T last = state.get();
+                    if (last == null || !last.equals(element)) {
+                        state.set(element);
+                        return downstream.push(element);
+                    }
+                    return true;
+                })
+        );
+    }
+
+    /// Returns a list of orders for all accounts.
+    ///
+    /// This method currently fetches orders for each account.
+    /// Run the test [org.example.CrazyGatherersTest#getListOfOrdersByAccounts_executesWithinExpectedTime()]
+    /// and fix the issue.
+    ///
+    /// Refactor this method so that it executes efficiently,
+    /// while producing the same list of orders.
+    ///
+    /// @return a list of [OrderDetails] objects corresponding to all accounts
+    public List<OrderDetails> getListOfOrdersByAccounts() {
+        return accounts.stream()
+                .gather(Gatherers.mapConcurrent(Runtime.getRuntime().availableProcessors(),
+                        account -> callToAnotherMicroserviceToGetOrder(account.id())))
+//                .map(account -> callToAnotherMicroserviceToGetOrder(account.id()))
+                .toList();
+    }
+
+    private OrderDetails callToAnotherMicroserviceToGetOrder(Long accountId) {
+        try {
+            Thread.sleep(Duration.ofSeconds(1));
+            return new OrderDetails(accountId + 1, accountId, "some info");
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
