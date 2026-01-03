@@ -10,7 +10,7 @@ public record Account(
     String lastName,
     String email,
     LocalDate birthday,
-    Sex sex,
+    Gender gender,
     LocalDate creationDate,
     BigDecimal balance
 )

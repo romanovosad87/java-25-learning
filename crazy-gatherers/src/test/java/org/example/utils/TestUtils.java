@@ -24,27 +24,27 @@ public class TestUtils {
     public static List<Account> accounts() {
         return List.of(
                 new Account(1L, "Alice", "Smith", "alice@gmail.com",
-                        LocalDate.of(1990, 1, 1), Sex.FEMALE,
+                        LocalDate.of(1990, 1, 1), Gender.FEMALE,
                         LocalDate.of(2020, 1, 1), BigDecimal.valueOf(1000)),
 
                 new Account(2L, "Bob", "Johnson", "bob@yahoo.com",
-                        LocalDate.of(1985, 5, 20), Sex.MALE,
+                        LocalDate.of(1985, 5, 20), Gender.MALE,
                         LocalDate.of(2019, 3, 15), BigDecimal.valueOf(2000)),
 
                 new Account(3L, "Carol", "Williams", "carol@gmail.com",
-                        LocalDate.of(1995, 7, 10), Sex.FEMALE,
+                        LocalDate.of(1995, 7, 10), Gender.FEMALE,
                         LocalDate.of(2021, 6, 30), BigDecimal.valueOf(1500)),
 
                 new Account(4L, "David", "Brown", "david@outlook.com",
-                        LocalDate.of(1988, 2, 28), Sex.MALE,
+                        LocalDate.of(1988, 2, 28), Gender.MALE,
                         LocalDate.of(2018, 9, 12), BigDecimal.valueOf(1800)),
 
                 new Account(5L, "Eve", "Davis", "eve@gmail.com",
-                        LocalDate.of(2000, 12, 5), Sex.FEMALE,
+                        LocalDate.of(2000, 12, 5), Gender.FEMALE,
                         LocalDate.of(2022, 4, 1), BigDecimal.valueOf(2200)),
 
                 new Account(6L, "Alice", "Taylor", "alice.t@gmail.com",
-                        LocalDate.of(1992, 3, 14), Sex.FEMALE,
+                        LocalDate.of(1992, 3, 14), Gender.FEMALE,
                         LocalDate.of(2021, 5, 10), BigDecimal.valueOf(1300)) // duplicate first name
         );
     }
@@ -64,7 +64,7 @@ public class TestUtils {
                             1 + random.nextInt(28)    // day 1-28 (safe for all months)
                     );
 
-                    Sex sex = random.nextBoolean() ? Sex.FEMALE : Sex.MALE;
+                    Gender sex = random.nextBoolean() ? Gender.FEMALE : Gender.MALE;
 
                     LocalDate registered = LocalDate.of(
                             2015 + random.nextInt(8), // year 2015-2022

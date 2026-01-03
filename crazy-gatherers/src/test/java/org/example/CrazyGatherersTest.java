@@ -2,7 +2,7 @@ package org.example;
 
 import org.example.utils.Account;
 import org.example.utils.OrderDetails;
-import org.example.utils.Sex;
+import org.example.utils.Gender;
 import org.example.utils.TestUtils;
 import org.junit.jupiter.api.*;
 
@@ -29,8 +29,8 @@ class CrazyGatherersTest {
 
     @Test
     @Order(1)
-    void filterBySex() {
-        List<Account> result = crazyGatherers.filterBySex(Sex.FEMALE);
+    void filterByGender() {
+        List<Account> result = crazyGatherers.filterByGender(Gender.FEMALE);
 
         assertThat(result).hasSize(4);
         assertThat(result.get(0).firstName()).isEqualTo("Alice");

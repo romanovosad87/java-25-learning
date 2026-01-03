@@ -2,7 +2,7 @@ package org.example;
 
 import org.example.utils.Account;
 import org.example.utils.OrderDetails;
-import org.example.utils.Sex;
+import org.example.utils.Gender;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -29,20 +29,20 @@ public class CrazyGatherers {
         this.integers = integers;
     }
 
-    /// Returns all accounts matching the given sex.
+    /// Returns all accounts matching the given gender.
     ///
     /// Internally, this method demonstrates how a custom
     /// [java.util.stream.Gatherer] can be used instead of
     /// [java.util.stream.Stream#filter(java.util.function.Predicate)].
     ///
-    /// @param sex
-    ///   the sex to filter accounts by
+    /// @param gender
+    ///   the gender to filter accounts by
     /// @return
-    ///   a list of accounts with the given sex
+    ///   a list of accounts with the given gender
 
-    public List<Account> filterBySex(Sex sex) {
+    public List<Account> filterByGender(Gender gender) {
         return accounts.stream()
-                .gather(filter(account -> account.sex() == sex))
+                .gather(filter(account -> account.gender() == gender))
                 .toList();
     }
 
