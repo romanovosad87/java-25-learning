@@ -1,13 +1,12 @@
 package org.example;
 
 import org.example.utils.Account;
-import org.example.utils.ExerciseNotCompletedException;
 import org.example.utils.Sex;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -50,7 +49,14 @@ public class CrazyGatherers {
     /// @return
     ///   a gatherer that filters accounts according to the predicate
     private Gatherer<Account, ?, Account> filter(Predicate<Account> predicate) {
-        throw new ExerciseNotCompletedException();
+        return Gatherer.of(
+                ((_, element, downstream) -> {
+                    if (predicate.test(element)) {
+                        return downstream.push(element);
+                    }
+                    return true;
+                })
+        );
     }
 
     /// Maps accounts to their full names.
@@ -80,7 +86,9 @@ public class CrazyGatherers {
     /// @return
     ///   a gatherer that maps accounts to values produced by the function
     private Gatherer<Account, ?, String> map(Function<Account, String> function) {
-        throw new ExerciseNotCompletedException();
+        return Gatherer.of(
+                ((_, element, downstream) -> downstream.push(function.apply(element)))
+        );
     }
 
     /// Prints the first name of every account.
@@ -114,7 +122,12 @@ public class CrazyGatherers {
     /// @return
     ///   a gatherer that performs a side effect without modifying elements
     private Gatherer<String, ?, String> peek(Consumer<String> consumer) {
-        throw new ExerciseNotCompletedException();
+        return Gatherer.of(
+                ((_, element, downstream) -> {
+                    consumer.accept(element);
+                    return downstream.push(element);
+                })
+        );
     }
 
     /// Flattens first-name lines from all accounts into a single stream.
@@ -142,7 +155,13 @@ public class CrazyGatherers {
     /// @return
     ///   a gatherer that flattens produced streams into a single stream
     private Gatherer<Account, ?, String> flatMap(Function<Account, Stream<String>> function) {
-        throw new ExerciseNotCompletedException();
+        return Gatherer.of(
+                ((_, element, downstream) -> {
+                    function.apply(element)
+                            .forEach(downstream::push);
+                    return true;
+                })
+        );
     }
 
     /// Returns a list containing at most the given number of accounts.
@@ -172,7 +191,17 @@ public class CrazyGatherers {
     /// @return
     ///   a gatherer that limits the number of propagated elements
     private Gatherer<Account, ?, Account> limit(long size) {
-        throw new ExerciseNotCompletedException();
+        return Gatherer.ofSequential(
+                () -> new Object() { long currentSize = 0L; },
+                ((state, element, downstream) -> {
+                    state.currentSize++;
+                    if (state.currentSize < size) {
+                        return downstream.push(element);
+                    } else {
+                        return false;
+                    }
+                })
+        );
     }
 
     /// Returns accounts while the email domain is `gmail.com`.
@@ -203,7 +232,20 @@ public class CrazyGatherers {
     /// @return
     ///   a gatherer that forwards elements while the predicate holds
     private Gatherer<Account, ?, Account> takeWhile(Predicate<Account> predicate) {
-        throw new ExerciseNotCompletedException();
+        return Gatherer.ofSequential(
+                () -> new AtomicReference<>(true),
+                ((gate, element, downstream) -> {
+                    if (!gate.get()) {
+                        return false;
+                    }
+                    if (predicate.test(element)) {
+                        return downstream.push(element);
+                    } else {
+                        gate.set(false);
+                        return false;
+                    }
+                })
+        );
     }
 
     /// Returns a list of accounts skipping the first `size` elements.
@@ -233,7 +275,16 @@ public class CrazyGatherers {
     /// @return
     ///   a gatherer that skips the first `size` elements
     private Gatherer<Account, ?, Account> skip(long size) {
-        throw new ExerciseNotCompletedException();
+        return Gatherer.ofSequential(
+                AtomicInteger::new,
+                ((counter, element, downstream) -> {
+                    if (counter.getAndIncrement() < size) {
+                        return downstream.push(element);
+                    } else {
+                        return false;
+                    }
+                })
+        );
     }
 
     /// Returns accounts, skipping those whose birthday is after the given date.
@@ -266,7 +317,19 @@ public class CrazyGatherers {
     /// @return
     ///   a gatherer that drops elements while the predicate is true
     private Gatherer<Account, ?, Account> dropWhile(Predicate<Account> predicate) {
-        throw new ExerciseNotCompletedException();
+        return Gatherer.ofSequential(
+                () -> new Object() { boolean isClosed = true; },
+                ((gate, element, downstream) -> {
+                    if (!gate.isClosed) {
+                        return downstream.push(element);
+                    }
+
+                    if (!predicate.test(element)) {
+                        gate.isClosed = false;
+                    }
+                    return downstream.push(element);
+                })
+        );
     }
 
     /// Returns a list of distinct first names from all accounts.
@@ -293,7 +356,15 @@ public class CrazyGatherers {
     /// @return
     ///   a gatherer that filters out duplicate elements
     private Gatherer<String, ?, String> distinct() {
-        throw new ExerciseNotCompletedException();
+        return Gatherer.ofSequential(
+                HashSet::new,
+                ((state, element, downstream) -> {
+                    if (state.add(element)) {
+                        return downstream.push(element);
+                    }
+                    return true;
+                })
+        );
     }
 
     /// Returns a list of last names from all accounts, sorted alphabetically.
@@ -319,7 +390,18 @@ public class CrazyGatherers {
     /// @return
     ///   a gatherer that sorts elements before forwarding
     private Gatherer<String, ?, String> sorted() {
-        throw new ExerciseNotCompletedException();
+        return Gatherer.of(
+                () -> new TreeSet<String>(),
+                ((state, element, downstream) -> {
+                    state.add(element);
+                    return true;
+                }),
+                (state1, state2) -> {
+                    state1.addAll(state2);
+                    return state1;
+                },
+                (state, downstream) -> state.forEach(downstream::push)
+        );
     }
 
     /// Returns a list of first names sorted using the given comparator.
@@ -349,6 +431,17 @@ public class CrazyGatherers {
     /// @return
     ///   a gatherer that sorts elements before forwarding
     private Gatherer<String, ?, String> sorted(Comparator<String> comparator) {
-        throw new ExerciseNotCompletedException();
+        return Gatherer.of(
+                () -> new TreeSet<>(comparator),
+                ((state, element, downstream) -> {
+                    state.add(element);
+                    return true;
+                }),
+                (state1, state2) -> {
+                    state1.addAll(state2);
+                    return state1;
+                },
+                (state, downstream) -> state.forEach(downstream::push)
+        );
     }
 }
