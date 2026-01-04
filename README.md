@@ -1,6 +1,6 @@
 # 🎉 Crazy-Gatherers
 
-The `crazy-streams` module contains the **`CrazyGatherers`** class, which provides a series of hands-on exercises designed to help you **master Java Stream Gatherers** .
+The `crazy-gatherers` module contains the **`CrazyGatherers`** class, which provides a series of hands-on exercises designed to help you **master Java Stream Gatherers** .
 
 The exercises in `CrazyGatherers` progress from simple operations—like filtering, mapping, and printing elements—to more advanced stream operations such as folding, scanning, windowing, and handling parallel streams. Each exercise demonstrates how custom Gatherers can mimic or extend standard stream operations, providing a practical way to understand the mechanics of streams.
 
