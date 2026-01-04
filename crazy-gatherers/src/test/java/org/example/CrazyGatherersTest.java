@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.*;
 
+@TestClassOrder(ClassOrderer.OrderAnnotation.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class CrazyGatherersTest {
 

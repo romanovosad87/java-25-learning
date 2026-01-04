@@ -941,7 +941,8 @@ public class CrazyGatherers {
     /// @return a list of [OrderDetails] objects corresponding to all accounts
     public List<OrderDetails> getListOfOrdersByAccounts() {
         return accounts.stream()
-                .map(account -> callToAnotherMicroserviceToGetOrder(account.id()))
+                .gather(Gatherers.mapConcurrent(Runtime.getRuntime().availableProcessors(),
+                        account -> callToAnotherMicroserviceToGetOrder(account.id())))
                 .toList();
     }
 
