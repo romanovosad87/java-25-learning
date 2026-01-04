@@ -611,7 +611,7 @@ public class CrazyGatherers {
     public List<List<String>> groupEmailsByFixedWindow(int size) {
         return accounts.stream()
                 .map(Account::email)
-                .gather(Gatherers.windowFixed(size))
+                .gather(windowFixed(size))
                 .toList();
     }
 
