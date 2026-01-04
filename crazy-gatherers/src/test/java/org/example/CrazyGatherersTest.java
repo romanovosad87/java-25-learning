@@ -3,7 +3,7 @@ package org.example;
 import org.example.utils.Account;
 import org.example.utils.OrderDetails;
 import org.example.utils.Gender;
-import org.example.utils.TestUtils;
+import org.example.utils.DataUtils;
 import org.junit.jupiter.api.*;
 
 import java.io.ByteArrayOutputStream;
@@ -24,7 +24,7 @@ class CrazyGatherersTest {
 
     @BeforeEach
     public void setAccounts() {
-        crazyGatherers = new CrazyGatherers(TestUtils.accounts());
+        crazyGatherers = new CrazyGatherers(DataUtils.accounts());
     }
 
     @Test
@@ -41,8 +41,8 @@ class CrazyGatherersTest {
 
     @Test
     @Order(2)
-    void mapToNames() {
-        List<String> result = crazyGatherers.mapToNames();
+    void mapToFullNames() {
+        List<String> result = crazyGatherers.mapToFullNames();
 
         assertThat(result).containsExactly(
                 "Alice Smith",
@@ -103,6 +103,7 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(6)
     void takeWhileEmailDomainIsGmail() {
         List<Account> result = crazyGatherers.takeWhileEmailDomainIsGmail();
 
@@ -111,11 +112,12 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(7)
     void skipAccounts() {
         int skipSize = 2;
         List<Account> result = crazyGatherers.skipAccounts(skipSize);
 
-        assertThat(result).hasSize(TestUtils.accounts().size() - skipSize);
+        assertThat(result).hasSize(DataUtils.accounts().size() - skipSize);
         assertThat(result.get(0).firstName()).isEqualTo("Carol");
         assertThat(result.get(1).firstName()).isEqualTo("David");
         assertThat(result.get(2).firstName()).isEqualTo("Eve");
@@ -123,6 +125,7 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(8)
     void dropWhileBornAfter() {
         List<Account> result = crazyGatherers.dropWhileBornAfter(LocalDate.of(1988, 12, 31));
 
@@ -135,6 +138,7 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(9)
     void distinctFirstNames() {
         List<String> result = crazyGatherers.distinctFirstNames();
 
@@ -143,6 +147,7 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(10)
     void sortByLastNames() {
         List<String> result = crazyGatherers.sortByLastNames();
 
@@ -157,6 +162,7 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(11)
     void sortFirstNameByComparator() {
         List<String> result = crazyGatherers.sortFirstNameByComparator(Comparator.reverseOrder());
 
@@ -171,6 +177,7 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(12)
     void concatenateFirstNamesTest() {
         List<String> result = crazyGatherers.concatenateFirstNames();
 
@@ -180,6 +187,7 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(13)
     void scanBalances() {
         List<BigDecimal> result = crazyGatherers.scanBalances();
 
@@ -194,6 +202,7 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(14)
     void groupEmailsByFixedWindow() {
         List<List<String>> result = crazyGatherers.groupEmailsByFixedWindow(4);
 
@@ -213,6 +222,7 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(15)
     void groupFirstNamesBySlicingWindow() {
         List<List<String>> result =
                 crazyGatherers.groupFirstNamesBySlidingWindow(3);
@@ -226,8 +236,9 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(16)
     void distinctByFirstName_parallelStream() {
-        List<Account> accounts = TestUtils.randomAccounts(10_000);
+        List<Account> accounts = DataUtils.randomAccounts(10_000);
         CrazyGatherers crazyGatherersRandom = new CrazyGatherers(accounts);
         List<Account> result = crazyGatherersRandom.distinctByFirstName();
 
@@ -241,6 +252,7 @@ class CrazyGatherersTest {
     }
 
     @Test
+    @Order(17)
     void getIncreasingSequence_shouldReturnCorrectSequences() {
         // Arrange
         var ints = List.of(2, 1, 3, 4, 5, 4, 3, 2, 1);
@@ -259,69 +271,92 @@ class CrazyGatherersTest {
         assertThat(result.get(5)).containsExactly(1);
     }
 
-    @Test
-    void getEveryAccountByStep_step2() {
-        List<Account> result = crazyGatherers.getEveryAccountByStep(2);
 
-        // We expect every 2nd account: Bob, David, Alice(Taylor)
-        assertThat(result).hasSize(3);
-        assertThat(result.get(0).firstName()).isEqualTo("Bob");
-        assertThat(result.get(1).firstName()).isEqualTo("David");
-        assertThat(result.get(2).firstName()).isEqualTo("Alice");
+
+    @Nested
+    @Order(18)
+    @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+    class GetEveryAccountByStepTests {
+
+        @Test
+        @Order(1)
+        void getEveryAccountByStep_step2() {
+            List<Account> result = crazyGatherers.getEveryAccountByStep(2);
+
+            assertThat(result).hasSize(3);
+            assertThat(result.get(0).firstName()).isEqualTo("Bob");
+            assertThat(result.get(1).firstName()).isEqualTo("David");
+            assertThat(result.get(2).firstName()).isEqualTo("Alice");
+        }
+
+        @Test
+        @Order(2)
+        void getEveryAccountByStep_step1_returnsAll() {
+            List<Account> result = crazyGatherers.getEveryAccountByStep(1);
+
+            // Step 1 returns all accounts in order
+            assertThat(result).hasSize(DataUtils.accounts().size());
+            assertThat(result).containsExactlyElementsOf(DataUtils.accounts());
+        }
+
+        @Test
+        @Order(3)
+        void getEveryAccountByStep_zeroStep_throws() {
+            // Step 0 should throw IllegalArgumentException
+            assertThatThrownBy(() -> crazyGatherers.getEveryAccountByStep(0))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+
+
+    @Nested
+    @Order(19)
+    @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+    class CollapseConsecutiveDuplicatesTests {
+
+        @Test
+        @Order(1)
+        void collapseConsecutiveDuplicates_shouldRemoveConsecutiveDuplicates() {
+            var ints = List.of(1, 1, 2, 2, 2, 3, 1, 1, 4);
+            CrazyGatherers crazyGatherers = new CrazyGatherers(ints);
+
+            List<Integer> result = crazyGatherers.collapseConsecutiveDuplicates();
+
+            assertThat(result)
+                    .containsExactly(1, 2, 3, 1, 4);
+        }
+
+        @Test
+        @Order(2)
+        void collapseConsecutiveDuplicates_emptyList_returnsEmptyList() {
+            var emptyList = new ArrayList<Integer>();
+            CrazyGatherers crazyGatherers = new CrazyGatherers(emptyList);
+
+            List<Integer> result = crazyGatherers.collapseConsecutiveDuplicates();
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @Order(3)
+        void collapseConsecutiveDuplicates_singleElement_returnsSameList() {
+            int element = 42;
+            var listWithOneElement = List.of(element);
+            CrazyGatherers crazyGatherers = new CrazyGatherers(listWithOneElement);
+
+            List<Integer> result = crazyGatherers.collapseConsecutiveDuplicates();
+
+            assertThat(result).containsExactly(element);
+        }
+
     }
 
     @Test
-    void getEveryAccountByStep_step1_returnsAll() {
-        List<Account> result = crazyGatherers.getEveryAccountByStep(1);
-
-        // Step 1 returns all accounts in order
-        assertThat(result).hasSize(TestUtils.accounts().size());
-        assertThat(result).containsExactlyElementsOf(TestUtils.accounts());
-    }
-
-    @Test
-    void getEveryAccountByStep_zeroStep_throws() {
-        // Step 0 should throw IllegalArgumentException
-        assertThatThrownBy(() -> crazyGatherers.getEveryAccountByStep(0))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void collapseConsecutiveDuplicates_shouldRemoveConsecutiveDuplicates() {
-        var ints = List.of(1, 1, 2, 2, 2, 3, 1, 1, 4);
-        CrazyGatherers crazyGatherers = new CrazyGatherers(ints);
-
-        List<Integer> result = crazyGatherers.collapseConsecutiveDuplicates();
-
-        assertThat(result)
-                .containsExactly(1, 2, 3, 1, 4);
-    }
-
-    @Test
-    void collapseConsecutiveDuplicates_emptyList_returnsEmptyList() {
-        var emptyList = new ArrayList<Integer>();
-        CrazyGatherers crazyGatherers = new CrazyGatherers(emptyList);
-
-        List<Integer> result = crazyGatherers.collapseConsecutiveDuplicates();
-
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    void collapseConsecutiveDuplicates_singleElement_returnsSameList() {
-        int element = 42;
-        var listWithOneElement = List.of(element);
-        CrazyGatherers crazyGatherers = new CrazyGatherers(listWithOneElement);
-
-        List<Integer> result = crazyGatherers.collapseConsecutiveDuplicates();
-
-        assertThat(result).containsExactly(element);
-    }
-
-    @Test
+    @Order(20)
     void getListOfOrdersByAccounts_executesWithinExpectedTime() {
         int accountSize = 5;
-        var accounts = TestUtils.randomAccounts(accountSize);
+        var accounts = DataUtils.randomAccounts(accountSize);
         CrazyGatherers crazyGatherers = new CrazyGatherers(accounts);
 
         // Get number of available cores

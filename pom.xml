@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>crazy-gatherers</module>
-        <module>stream-gatherers-examples</module>
+        <module>stream-gatherers-experiments</module>
     </modules>
 
     <properties>

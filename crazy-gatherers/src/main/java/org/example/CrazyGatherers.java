@@ -15,6 +15,50 @@ import java.util.stream.Gatherer;
 import java.util.stream.Gatherers;
 import java.util.stream.Stream;
 
+///
+/// ## CrazyGatherers
+///
+/// A collection of examples demonstrating how to implement custom
+/// [java.util.stream.Gatherer] operations in Java streams.
+///
+/// This class is designed for **learning purposes** as a **hands-on resource** to help master the concepts
+/// of stream processing with Gatherers. It gradually progresses from simple
+/// operations such as filtering, mapping, and printing elements, to more
+/// advanced operations like folding, scanning, windowing
+///
+/// Each method is accompanied by a corresponding test in
+/// [org.example.CrazyGatherersTest] which can be executed to validate
+/// behavior and performance. For additional guidance and example implementations,
+/// check the `completed` branch in the project.
+///
+/// ### Standard Stream Operations Demonstrated
+///
+/// The methods in this class demonstrate how custom Gatherers can be used to
+/// mimic or extend standard stream operations:
+///
+/// - [Stream#filter(java.util.function.Predicate)]
+/// - [Stream#map(java.util.function.Function)]
+/// - [Stream#peek(java.util.function.Consumer)]
+/// - [Stream#flatMap(java.util.function.Function)]
+/// - [Stream#limit(long)]
+/// - [Stream#skip(long)]
+/// - [Stream#takeWhile(java.util.function.Predicate)]
+/// - [Stream#dropWhile(java.util.function.Predicate)]
+/// - [Stream#distinct()]
+/// - [Stream#sorted()]
+/// - [Stream#sorted(java.util.Comparator)]
+///
+/// ### Custom Gatherer Operations Explored
+///
+/// In addition to mimicking standard operations, this class explores custom
+/// operations such as:
+///
+/// - Folding and scanning elements to accumulate results
+/// - Windowing elements into fixed or sliding batches
+/// - Collapsing consecutive duplicates
+/// - Extracting increasing sequences from numerical streams
+/// - Sampling elements at regular intervals
+/// - Simulating remote calls to illustrate performance considerations
 public class CrazyGatherers {
 
     private Collection<Account> accounts;
@@ -31,9 +75,9 @@ public class CrazyGatherers {
 
     /// Returns all accounts matching the given gender.
     ///
-    /// Internally, this method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can be used instead of
-    /// [java.util.stream.Stream#filter(java.util.function.Predicate)].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] could be implemented to filter elements,
+    /// similar to how one might use [java.util.stream.Stream#filter(java.util.function.Predicate)] in standard streams.
     ///
     /// @param gender
     ///   the gender to filter accounts by
@@ -69,13 +113,13 @@ public class CrazyGatherers {
 
     /// Maps accounts to their full names.
     ///
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can be used instead of
-    /// [java.util.stream.Stream#map(java.util.function.Function)].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] could be implemented to transform elements,
+    /// similar to how one might use [java.util.stream.Stream#map(java.util.function.Function)] in standard streams.
     ///
     /// @return
     ///   a list containing the full names of all accounts
-    public List<String> mapToNames() {
+    public List<String> mapToFullNames() {
         return accounts.stream()
                 .gather(map(account -> "%s %s".formatted(
                         account.firstName(),
@@ -101,13 +145,12 @@ public class CrazyGatherers {
 
     /// Prints the first name of every account.
     ///
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can be used to perform
-    /// side effects, similar to [java.util.stream.Stream#peek(java.util.function.Consumer)].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] could be implemented to perform side effects,
+    /// similar to how one might use [java.util.stream.Stream#peek(java.util.function.Consumer)] in standard streams.
     ///
     /// @implNote
-    /// The terminal operation consumes the stream without
-    /// producing a meaningful result.
+    /// The terminal operation consumes the stream without producing a meaningful result.
     ///
     /// @return
     ///   nothing; this method performs output as a side effect
@@ -140,9 +183,9 @@ public class CrazyGatherers {
 
     /// Flattens first-name lines from all accounts into a single stream.
     ///
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can be used instead of
-    /// [Stream#flatMap(java.util.function.Function)].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] could be implemented to flatten elements,
+    /// similar to how one might use [java.util.stream.Stream#flatMap(java.util.function.Function)] in standard streams.
     ///
     /// @return
     ///   a list containing all first-name lines from all accounts
@@ -174,9 +217,9 @@ public class CrazyGatherers {
 
     /// Returns a list containing at most the given number of accounts.
     ///
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can be used instead of
-    /// [Stream#limit(long)].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] could be implemented to limit elements,
+    /// similar to how one might use [java.util.stream.Stream#limit(long)] in standard streams.
     ///
     /// @param size
     ///   the maximum number of accounts to include
@@ -213,9 +256,10 @@ public class CrazyGatherers {
 
     /// Returns accounts while the email domain is `gmail.com`.
     ///
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can implement behavior similar to
-    /// [Stream#takeWhile(java.util.function.Predicate)].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] could be implemented to take elements
+    /// while a condition is true, similar to how one might use
+    /// [java.util.stream.Stream#takeWhile(java.util.function.Predicate)] in standard streams.
     ///
     /// Processing stops as soon as an account does not satisfy the predicate.
     ///
@@ -257,9 +301,9 @@ public class CrazyGatherers {
 
     /// Returns a list of accounts skipping the first `size` elements.
     ///
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can implement behavior similar to
-    /// [Stream#skip(long)].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] could be implemented to skip elements,
+    /// similar to how one might use [Stream#skip(long)] in standard streams.
     ///
     /// @param size
     ///   the number of accounts to skip
@@ -296,9 +340,10 @@ public class CrazyGatherers {
 
     /// Returns accounts, skipping those whose birthday is after the given date.
     ///
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can implement behavior similar to
-    /// [Stream#dropWhile(java.util.function.Predicate)].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] could be implemented to drop elements,
+    /// similar to how one might use [Stream#dropWhile(java.util.function.Predicate)]
+    /// in standard streams.
     ///
     /// Processing stops skipping elements as soon as an account does not satisfy the predicate.
     ///
@@ -340,9 +385,9 @@ public class CrazyGatherers {
 
     /// Returns a list of distinct first names from all accounts.
     ///
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can implement behavior similar to
-    /// [Stream#distinct()].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] could be implemented to enforce uniqueness,
+    /// similar to how one might use [Stream#distinct()] in standard streams.
     ///
     /// @return
     ///   a list of unique first names
@@ -375,9 +420,9 @@ public class CrazyGatherers {
 
     /// Returns a list of last names from all accounts, sorted alphabetically.
     ///
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can implement behavior similar to
-    /// [Stream#sorted()].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] could be implemented to sort elements,
+    /// similar to how one might use [Stream#sorted()] in standard streams.
     ///
     /// @return
     ///   a list of last names in ascending alphabetical order
@@ -416,9 +461,10 @@ public class CrazyGatherers {
 
     /// Returns a list of first names sorted using the given comparator.
     ///
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can implement behavior similar to
-    /// [Stream#sorted(java.util.Comparator)].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] could be implemented to sort elements
+    /// with a comparator, similar to how one might use
+    /// [Stream#sorted(java.util.Comparator)] in standard streams.
     ///
     /// @param comparator
     ///   the comparator used to determine the order of elements
@@ -461,9 +507,10 @@ public class CrazyGatherers {
 
     /// Returns a list of first names from all accounts, concatenated using a fold operation.
     ///
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can implement behavior similar to
-    /// [Gatherers#fold(java.util.function.Supplier, java.util.function.BiFunction)].
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] can implement a fold/reduce-like behavior,
+    /// similar to [Gatherers#fold(java.util.function.Supplier, java.util.function.BiFunction)],
+    /// without the need to implement it exactly like standard JDK streams.
     ///
     /// Internally, it accumulates the first names of all accounts into a single string,
     /// starting from an initial value `" $ "` and combining each element with `" | "`
@@ -484,9 +531,9 @@ public class CrazyGatherers {
     /// The gatherer must imitate [Gatherers#fold(java.util.function.Supplier, java.util.function.BiFunction)], starting from a supplied initial value
     /// and applying a combining function to each element.
     ///
-    /// @param supplier
+    /// @param initial
     ///   provides the initial value for the fold
-    /// @param biConsumer
+    /// @param folder
     ///   the function used to combine the accumulated value with each element
     /// @return
     ///   a gatherer that folds elements into a single result
@@ -504,9 +551,11 @@ public class CrazyGatherers {
     }
 
     /// Returns a list of cumulative balances from all accounts.
-    /// This method demonstrates how a custom
-    /// [java.util.stream.Gatherer] can implement behavior similar to
-    /// [Gatherers#scan(java.util.function.Supplier, java.util.function.BiFunction)].
+    ///
+    /// This method, for learning purposes, demonstrates how a custom
+    /// [java.util.stream.Gatherer] can implement a scan/reduce-like behavior,
+    /// similar to [Gatherers#scan(java.util.function.Supplier, java.util.function.BiFunction)],
+    /// without the need to implement it exactly like standard JDK streams.
     ///
     /// Internally, it accumulates the balances of accounts step by step,
     /// starting from an initial value `BigDecimal.ZERO` and combining each
@@ -523,8 +572,8 @@ public class CrazyGatherers {
     /// Creates a gatherer that accumulates values in a running total manner.
     ///
     /// This method is intentionally left unimplemented as an exercise.
-    /// The gatherer must combine elements step by step using the provided
-    /// scanner function, forwarding each intermediate result downstream.
+    /// The gatherer must imitate [Gatherers#scan(java.util.function.Supplier, java.util.function.BiFunction)],
+    /// combine elements step by step using the provided scanner function, forwarding each intermediate result downstream.
     ///
     /// @param initial
     ///   a supplier providing the initial value for the accumulation
@@ -547,9 +596,10 @@ public class CrazyGatherers {
 
     /// Returns first names grouped into consecutive slices of a fixed size.
     ///
-    /// This method demonstrates how a custom
+    /// This method, for learning purposes, demonstrates how a custom
     /// [java.util.stream.Gatherer] can implement behavior similar to
-    /// [Gatherers#windowFixed(int)].
+    /// [Gatherers#windowFixed(int)],
+    /// without the need to implement it exactly like standard JDK streams.
     ///
     /// Elements are collected in encounter order into lists of the given size.
     /// The final slice may contain fewer elements if the stream ends early.
@@ -597,11 +647,12 @@ public class CrazyGatherers {
         );
     }
 
-    /// Returns first names grouped into consecutive slices of a fixed size.
+    /// Returns first names grouped into consecutive sliding slices of a fixed size.
     ///
-    /// This method demonstrates how a custom
+    /// This method, for learning purposes, demonstrates how a custom
     /// [java.util.stream.Gatherer] can implement behavior similar to
-    /// [Gatherers#windowSliding(int)].
+    /// [Gatherers#windowSliding(int)],
+    /// without the need to implement it exactly like standard JDK streams.
     ///
     /// Elements are collected in encounter order into lists of the given size.
     /// The final slice may contain fewer elements if the stream ends early.
@@ -609,7 +660,7 @@ public class CrazyGatherers {
     /// @param size
     ///   the maximum number of elements in each slice
     /// @return
-    ///   a list of first-name slices
+    ///   a list of first-name sliding slices
     public List<List<String>> groupFirstNamesBySlidingWindow(int size) {
         return accounts.stream()
                 .map(Account::firstName)
@@ -782,6 +833,15 @@ public class CrazyGatherers {
     /// For example, given a step of 2, every second account in encounter
     /// order is included in the result.
     ///
+    /// For example, given list of names
+    /// ```text
+/// [Alice, Bob, Carol, David, Eve]
+/// ```
+    /// given a step of 2, the result would be:
+    /// ```text
+/// [Bob, David]
+/// ```
+    ///
     /// @param step
     ///   the interval at which accounts are selected (must be non-zero)
     /// @return
@@ -875,18 +935,19 @@ public class CrazyGatherers {
     /// Run the test [org.example.CrazyGatherersTest#getListOfOrdersByAccounts_executesWithinExpectedTime()]
     /// and fix the issue.
     ///
-    /// Refactor this method so that it executes efficiently,
+    /// *Refactor* this method so that it executes efficiently,
     /// while producing the same list of orders.
     ///
     /// @return a list of [OrderDetails] objects corresponding to all accounts
     public List<OrderDetails> getListOfOrdersByAccounts() {
         return accounts.stream()
-                .gather(Gatherers.mapConcurrent(Runtime.getRuntime().availableProcessors(),
-                        account -> callToAnotherMicroserviceToGetOrder(account.id())))
-//                .map(account -> callToAnotherMicroserviceToGetOrder(account.id()))
+                .map(account -> callToAnotherMicroserviceToGetOrder(account.id()))
                 .toList();
     }
 
+    /// Simulates a call to a remote service to fetch an order for the given account ID.
+    ///
+    /// This method introduces a delay of 1 second to imitate network latency.
     private OrderDetails callToAnotherMicroserviceToGetOrder(Long accountId) {
         try {
             Thread.sleep(Duration.ofSeconds(1));
