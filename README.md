@@ -23,6 +23,17 @@ You should have **Java 25** installed to compile and run this module.
     - Sampling elements at regular intervals
     - Extracting increasing sequences
 - 🔄 Sequential and parallel stream handling
+- ⚡ **GathererParallelismDemo**:
+  - Demonstrates the difference between **parallel** and **sequential gatherers**.
+  - Shows how thread usage differs in upstream, gatherer, and downstream stages.
+  - Provides an observable way to understand **parallelism behavior** in streams with custom gatherers.
+- ⚡ **GathererPerformanceDemo**:
+  - Compares execution time of **standard `map()`** vs a **sequential `Gatherer`**.
+  - Shows why `map()` is faster for stateless transformations while gatherers allow **flexible stateful operations**.
+  - Helps understand the **performance implications** of using gatherers for simple transformations.
+
+## ✅ Tests and Completed Solutions
+
 
 ## ✅ Tests and Completed Solutions
 
