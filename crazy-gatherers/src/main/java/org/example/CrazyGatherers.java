@@ -102,7 +102,7 @@ public class CrazyGatherers {
     ///   a gatherer that filters accounts according to the predicate
     private Gatherer<Account, ?, Account> filter(Predicate<Account> predicate) {
         return Gatherer.of(
-                ((_, element, downstream) -> {
+                ((_, element, downstream) -> {  // integrator
                     if (predicate.test(element)) {
                         return downstream.push(element);
                     }
@@ -139,7 +139,7 @@ public class CrazyGatherers {
     ///   a gatherer that maps accounts to values produced by the function
     private Gatherer<Account, ?, String> map(Function<Account, String> function) {
         return Gatherer.of(
-                ((_, element, downstream) -> downstream.push(function.apply(element)))
+                ((_, element, downstream) -> downstream.push(function.apply(element)))  // integrator
         );
     }
 
@@ -174,7 +174,7 @@ public class CrazyGatherers {
     ///   a gatherer that performs a side effect without modifying elements
     private Gatherer<String, ?, String> peek(Consumer<String> consumer) {
         return Gatherer.of(
-                ((_, element, downstream) -> {
+                ((_, element, downstream) -> {  // integrator
                     consumer.accept(element);
                     return downstream.push(element);
                 })
@@ -207,7 +207,7 @@ public class CrazyGatherers {
     ///   a gatherer that flattens produced streams into a single stream
     private Gatherer<Account, ?, String> flatMap(Function<Account, Stream<String>> function) {
         return Gatherer.of(
-                ((_, element, downstream) -> {
+                ((_, element, downstream) -> {  // integrator
                     function.apply(element)
                             .forEach(downstream::push);
                     return true;
@@ -243,8 +243,8 @@ public class CrazyGatherers {
     ///   a gatherer that limits the number of propagated elements
     private Gatherer<Account, ?, Account> limit(long size) {
         return Gatherer.ofSequential(
-                () -> new Object() { long currentSize = 0L; },
-                ((state, element, downstream) -> {
+                () -> new Object() { long currentSize = 0L; }, // initializer (state)
+                ((state, element, downstream) -> {  // integrator
                     if (state.currentSize++ < size) {
                         return downstream.push(element);
                     } else {
@@ -284,8 +284,8 @@ public class CrazyGatherers {
     ///   a gatherer that forwards elements while the predicate holds
     private Gatherer<Account, ?, Account> takeWhile(Predicate<Account> predicate) {
         return Gatherer.ofSequential(
-                () -> new AtomicReference<>(true),
-                ((gate, element, downstream) -> {
+                () -> new AtomicReference<>(true),    // initializer (state)
+                ((gate, element, downstream) -> {   // integrator
                     if (!gate.get()) {
                         return false;
                     }
@@ -327,8 +327,8 @@ public class CrazyGatherers {
     ///   a gatherer that skips the first `size` elements
     private Gatherer<Account, ?, Account> skip(long size) {
         return Gatherer.ofSequential(
-                AtomicInteger::new,
-                ((counter, element, downstream) -> {
+                AtomicInteger::new,   // initializer (state)
+                ((counter, element, downstream) -> {  // integrator
                     if (counter.getAndIncrement() < size) {
                         return true;
                     } else {
@@ -370,8 +370,8 @@ public class CrazyGatherers {
     ///   a gatherer that drops elements while the predicate is true
     private Gatherer<Account, ?, Account> dropWhile(Predicate<Account> predicate) {
         return Gatherer.ofSequential(
-                () -> new Object() { boolean isClosed = true; },
-                ((gate, element, downstream) -> {
+                () -> new Object() { boolean isClosed = true; },   // initializer (state)
+                ((gate, element, downstream) -> {   // integrator
                     if (gate.isClosed && !predicate.test(element)) {
                         gate.isClosed = false;
                     }
@@ -408,8 +408,8 @@ public class CrazyGatherers {
     ///   a gatherer that filters out duplicate elements
     private Gatherer<String, ?, String> distinct() {
         return Gatherer.ofSequential(
-                HashSet::new,
-                ((state, element, downstream) -> {
+                HashSet::new,  // initializer (state)
+                ((state, element, downstream) -> {  // integrator
                     if (state.add(element)) {
                         return downstream.push(element);
                     }
@@ -442,16 +442,16 @@ public class CrazyGatherers {
     ///   a gatherer that sorts elements before forwarding
     private Gatherer<String, ?, String> sorted() {
         return Gatherer.of(
-                () -> new PriorityQueue<String>(),
-                ((queue, element, _) -> {
+                () -> new PriorityQueue<String>(),  // initializer (state)
+                ((queue, element, _) -> {  // integrator
                     queue.add(element);
                     return true;
                 }),
-                (queue, queue2) -> {
+                (queue, queue2) -> {   // combiner
                     queue.addAll(queue2);
                     return queue;
                 },
-                (queue, downstream) -> {
+                (queue, downstream) -> {    // finisher
                     while (!queue.isEmpty()) {
                         downstream.push(queue.poll());
                     }
@@ -488,16 +488,16 @@ public class CrazyGatherers {
     ///   a gatherer that sorts elements before forwarding
     private Gatherer<String, ?, String> sorted(Comparator<String> comparator) {
         return Gatherer.of(
-                () -> new PriorityQueue<>(comparator),
-                ((queue, element, _) -> {
+                () -> new PriorityQueue<>(comparator),  // initializer (state)
+                ((queue, element, _) -> {  // integrator
                     queue.add(element);
                     return true;
                 }),
-                (queue, queue2) -> {
+                (queue, queue2) -> {  // combiner
                     queue.addAll(queue2);
                     return queue;
                 },
-                (queue, downstream) -> {
+                (queue, downstream) -> {  // finisher
                     while (!queue.isEmpty()) {
                         downstream.push(queue.poll());
                     }
@@ -539,14 +539,14 @@ public class CrazyGatherers {
     ///   a gatherer that folds elements into a single result
     private Gatherer<String, ?, String> customStringFold(Supplier<String> initial, BiFunction<String, String, String> folder) {
         return Gatherer.ofSequential(
-                () -> new Object() {
+                () -> new Object() {  // initializer (state)
                     String word = initial.get();
                 },
-                ((state, element, _) -> {
+                ((state, element, _) -> {   // integrator
                     state.word = folder.apply(state.word, element);
                     return true;
                 }),
-                (state, downstream) -> downstream.push(state.word)
+                (state, downstream) -> downstream.push(state.word)    // finisher
         );
     }
 
@@ -584,10 +584,10 @@ public class CrazyGatherers {
     private Gatherer<Account, ?, BigDecimal> customScan(Supplier<BigDecimal> initial,
                                                         BiFunction<BigDecimal, Account, BigDecimal> scanner) {
         return Gatherer.ofSequential(
-                () -> new Object() {
+                () -> new Object() {   // initializer (state)
                     BigDecimal total = initial.get();
                 },
-                ((state, element, downstream) -> {
+                ((state, element, downstream) -> {   // integrator
                     state.total = scanner.apply(state.total, element);
                     return downstream.push(state.total);
                 })
@@ -627,8 +627,8 @@ public class CrazyGatherers {
     ///   a gatherer that groups elements into fixed-size windows
     private <T>Gatherer<T, ?, List<T>> windowFixed(int size) {
         return Gatherer.ofSequential(
-                ArrayList<T>::new,
-                ((window, element, downstream) -> {
+                ArrayList<T>::new,  // initializer (state)
+                ((window, element, downstream) -> {   // integrator
                     window.add(element);
                     if (window.size() == size) {
                         List<T> emit = List.copyOf(window);
@@ -637,7 +637,7 @@ public class CrazyGatherers {
                     }
                     return true;
                 }),
-                (state, downstream) -> {
+                (state, downstream) -> { // finisher
                     if (!state.isEmpty()) {
                         List<T> emit = List.copyOf(state);
                         state.clear();
@@ -683,8 +683,8 @@ public class CrazyGatherers {
     ///   a gatherer that emits overlapping sliding windows of elements
     private static  <T>Gatherer<T, ?, List<T>> windowSliding(int size) {
         return Gatherer.ofSequential(
-                ArrayDeque<T>::new,
-                ((queue, element, downstream) -> {
+                ArrayDeque<T>::new,   // initializer
+                ((queue, element, downstream) -> {  // integrator
                     if (queue.size() < size) {
                         queue.addLast(element);
                     } else if (queue.size() == size) {
@@ -695,7 +695,7 @@ public class CrazyGatherers {
                     }
                     return true;
                 }),
-                (state, downstream) -> {
+                (state, downstream) -> {   // finisher
                     if (!state.isEmpty()) {
                         var emit = List.copyOf(state);
                         state.clear();
@@ -742,8 +742,8 @@ public class CrazyGatherers {
     ///   a thread-safe gatherer that emits only elements whose extracted keys are unique
     private <T, K>Gatherer<T, ?, T> distinctBy(Function<? super T, ? extends K> keyExtractor) {
         return Gatherer.of(
-                HashMap<K, T>::new, // initializer
-                (state, element, _) -> {
+                HashMap<K, T>::new, // initializer (state)
+                (state, element, _) -> {   // integrator
                     K key = keyExtractor.apply(element);
                     if (!state.containsKey(key)) {
                         state.put(key, element);
@@ -803,8 +803,8 @@ public class CrazyGatherers {
     ///   a gatherer that emits consecutive increasing sequences
     private <T> Gatherer<T, ?, List<T>> increasingSequence(Comparator<T> comparator) {
         return Gatherer.ofSequential(
-                ArrayList<T>::new,
-                ((state, element, downstream) -> {
+                ArrayList<T>::new,   // initializer
+                ((state, element, downstream) -> {  // integrator
                     if (state.isEmpty() || comparator.compare(element, state.getLast()) > 0) {
                         state.add(element);
                     } else {
@@ -815,7 +815,7 @@ public class CrazyGatherers {
                     }
                     return true;
                 }),
-                (state, downstream) -> {
+                (state, downstream) -> {   // finisher
                     if (!state.isEmpty() && !downstream.isRejecting()) {
                         List<T> emitState = List.copyOf(state);
                         state.clear();
@@ -870,8 +870,8 @@ public class CrazyGatherers {
             throw new IllegalArgumentException("step value can't be zero or negative value");
         }
         return Gatherer.ofSequential(
-                AtomicInteger::new,
-                ((state, element, downstream) -> {
+                AtomicInteger::new, // initializer (state)
+                ((state, element, downstream) -> {  // integrator
                     if (state.incrementAndGet() % step == 0) {
                         return downstream.push(element);
                     }
@@ -917,7 +917,7 @@ public class CrazyGatherers {
     ///   a gatherer that removes consecutive duplicates in order
     private <T> Gatherer<T, ?, T> collapseConsecutive() {
         return Gatherer.ofSequential(
-                () -> new AtomicReference<T>(),
+                () -> new AtomicReference<T>(),  // initializer (state)
                 ((state, element, downstream) -> {
                     T last = state.get();
                     if (last == null || !last.equals(element)) {
