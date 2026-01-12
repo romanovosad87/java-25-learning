@@ -34,9 +34,6 @@ You should have **Java 25** installed to compile and run this module.
 
 ## ✅ Tests and Completed Solutions
 
-
-## ✅ Tests and Completed Solutions
-
 Each method in `CrazyGatherers` is covered by tests in `org.example.CrazyGatherersTest`. You can run these tests to validate your solutions.
 
 If you ever get stuck or want to see reference implementations, you can check the **`completed`** branch in the project.
