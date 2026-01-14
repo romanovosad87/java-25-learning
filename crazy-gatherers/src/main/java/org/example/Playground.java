@@ -5,8 +5,9 @@ import org.example.utils.DataUtils;
 public class Playground {
 
     // filter
+    // mapToFullNames
     // distinct
-    // distinct (for parallel execution)
+    // distinctByFirstName (for parallel execution)
     static void main() {
         var accounts = DataUtils.accounts();
 
