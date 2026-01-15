@@ -32,6 +32,7 @@ You should have **Java 25** installed to compile and run this module.
   - Shows why `map()` is faster for stateless transformations while gatherers allow **flexible stateful operations**.
   - Helps understand the **performance implications** of using gatherers for simple transformations.
 
+
 ## ✅ Tests and Completed Solutions
 
 Each method in `CrazyGatherers` is covered by tests in `org.example.CrazyGatherersTest`. You can run these tests to validate your solutions.

@@ -15,8 +15,11 @@ import java.util.stream.IntStream;
 /// - restricted (`Gatherer.ofSequential(...)`)
 public class GathererParallelismDemo {
     static void main() {
+        IO.println("Sequential execution");
         sequential();
-//        parallel();
+
+        IO.println("Parallel execution");
+        parallel();
     }
 
     /// # Sequential Gatherer on a Parallel Stream

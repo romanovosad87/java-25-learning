@@ -38,19 +38,20 @@ import java.util.stream.Gatherer;
 /// comes at the cost of **execution speed** for simple stateless transformations.
 /// Use gatherers when you need **custom intermediate processing**, otherwise `map()` is faster.
 public class GathererPerformanceDemo {
+
     static void main() {
-       var accounts = DataUtils.randomAccounts(100_000);
+       var accounts = DataUtils.randomAccounts(1_000_000);
 
 
         long startMap = System.nanoTime();
-        var namesMap = accounts.stream()
+        accounts.stream()
                 .map(account -> account.firstName() + " " + account.lastName())
                 .count();
         long endMap = System.nanoTime();
         IO.println("Standard map() execution time: " + ((endMap - startMap)/1_000_000) + " ms");
 
         long startGatherer = System.nanoTime();
-        var namesGatherer = accounts.stream()
+        accounts.stream()
                 .gather(mapping(account -> account.firstName() + " " + account.lastName()))
                 .count();
         long endGatherer = System.nanoTime();
